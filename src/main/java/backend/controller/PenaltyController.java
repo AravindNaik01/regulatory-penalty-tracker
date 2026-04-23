@@ -1,4 +1,5 @@
 package backend.controller;
+import backend.config.ApiResponse;
 
 import java.util.List;
 
@@ -15,22 +16,23 @@ public class PenaltyController {
     @Autowired
     private PenaltyService service;
 
-    // CREATE
+ // CREATE
     @PostMapping
-    public Penalty create(@RequestBody Penalty penalty) {
-        return service.createPenalty(penalty);
+    public ApiResponse<Penalty> create(@RequestBody Penalty penalty) {
+        Penalty saved = service.createPenalty(penalty);
+        return new ApiResponse<>("Created successfully", saved);
     }
 
     // GET ALL
     @GetMapping
-    public List<Penalty> getAll() {
-        return service.getAllPenalties();
+    public ApiResponse<List<Penalty>> getAll() {
+        return new ApiResponse<>("Fetched successfully", service.getAllPenalties());
     }
 
     // GET BY ID
     @GetMapping("/{id}")
-    public Penalty getById(@PathVariable Long id) {
-        return service.getPenaltyById(id);
+    public ApiResponse<Penalty> getById(@PathVariable Long id) {
+        return new ApiResponse<>("Fetched successfully", service.getPenaltyById(id));
     }
 
     // DELETE
@@ -38,5 +40,10 @@ public class PenaltyController {
     public String delete(@PathVariable Long id) {
         service.deletePenalty(id);
         return "Deleted successfully";
+    }
+ // UPDATE
+    @PutMapping("/{id}")
+    public Penalty update(@PathVariable Long id, @RequestBody Penalty penalty) {
+        return service.updatePenalty(id, penalty);
     }
 }

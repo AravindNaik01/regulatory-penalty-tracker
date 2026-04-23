@@ -1,4 +1,5 @@
 package backend.service;
+import backend.exception.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -27,11 +28,21 @@ public class PenaltyService {
     // GET BY ID
     public Penalty getPenaltyById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Penalty not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Penalty not found"));
     }
 
     // DELETE
     public void deletePenalty(Long id) {
         repository.deleteById(id);
+    }
+    public Penalty updatePenalty(Long id, Penalty updatedPenalty) {
+        Penalty existing = repository.findById(id)
+        		.orElseThrow(() -> new ResourceNotFoundException("Penalty not found"));
+        existing.setTitle(updatedPenalty.getTitle());
+        existing.setDescription(updatedPenalty.getDescription());
+        existing.setAmount(updatedPenalty.getAmount());
+        existing.setStatus(updatedPenalty.getStatus());
+
+        return repository.save(existing);
     }
 }
