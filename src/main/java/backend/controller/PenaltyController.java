@@ -1,13 +1,16 @@
 package backend.controller;
+
+import backend.dto.PenaltyRequest;
 import backend.config.ApiResponse;
+import backend.entity.Penalty;
+import backend.service.PenaltyService;
+
+import jakarta.validation.Valid;
 
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import backend.entity.Penalty;
-import backend.service.PenaltyService;
 
 @RestController
 @RequestMapping("/api/penalties")
@@ -16,10 +19,18 @@ public class PenaltyController {
     @Autowired
     private PenaltyService service;
 
- // CREATE
+    // CREATE
     @PostMapping
-    public ApiResponse<Penalty> create(@RequestBody Penalty penalty) {
+    public ApiResponse<Penalty> create(@Valid @RequestBody PenaltyRequest request) {
+
+        Penalty penalty = new Penalty();
+        penalty.setTitle(request.getTitle());
+        penalty.setDescription(request.getDescription());
+        penalty.setAmount(request.getAmount());
+        penalty.setStatus(request.getStatus());
+
         Penalty saved = service.createPenalty(penalty);
+
         return new ApiResponse<>("Created successfully", saved);
     }
 
@@ -35,15 +46,26 @@ public class PenaltyController {
         return new ApiResponse<>("Fetched successfully", service.getPenaltyById(id));
     }
 
-    // DELETE
+    // DELETE ✅ FIXED
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Long id) {
         service.deletePenalty(id);
-        return "Deleted successfully";
+        return new ApiResponse<>("Deleted successfully", null);
     }
- // UPDATE
+
+    // UPDATE
     @PutMapping("/{id}")
-    public Penalty update(@PathVariable Long id, @RequestBody Penalty penalty) {
-        return service.updatePenalty(id, penalty);
+    public ApiResponse<Penalty> update(@PathVariable Long id,
+                                      @Valid @RequestBody PenaltyRequest request) {
+
+        Penalty penalty = new Penalty();
+        penalty.setTitle(request.getTitle());
+        penalty.setDescription(request.getDescription());
+        penalty.setAmount(request.getAmount());
+        penalty.setStatus(request.getStatus());
+
+        Penalty updated = service.updatePenalty(id, penalty);
+
+        return new ApiResponse<>("Updated successfully", updated);
     }
 }
