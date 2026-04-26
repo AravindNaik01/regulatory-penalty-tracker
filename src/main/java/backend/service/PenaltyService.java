@@ -1,5 +1,7 @@
 package backend.service;
 import backend.exception.ResourceNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -44,5 +46,11 @@ public class PenaltyService {
         existing.setStatus(updatedPenalty.getStatus());
 
         return repository.save(existing);
+    }
+    public Page<Penalty> getAllPenalties(Pageable pageable) {
+        return repository.findAll(pageable);
+    }
+    public List<Penalty> searchByTitle(String title) {
+        return repository.findByTitleContainingIgnoreCase(title);
     }
 }

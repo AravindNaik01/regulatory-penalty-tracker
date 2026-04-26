@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -34,19 +36,21 @@ public class PenaltyController {
         return new ApiResponse<>("Created successfully", saved);
     }
 
-    // GET ALL
+    // GET ALL (PAGINATION)
     @GetMapping
-    public ApiResponse<List<Penalty>> getAll() {
-        return new ApiResponse<>("Fetched successfully", service.getAllPenalties());
+    public ApiResponse<Page<Penalty>> getAll(Pageable pageable) {
+        return new ApiResponse<>("Fetched successfully",
+                service.getAllPenalties(pageable));
     }
 
     // GET BY ID
     @GetMapping("/{id}")
     public ApiResponse<Penalty> getById(@PathVariable Long id) {
-        return new ApiResponse<>("Fetched successfully", service.getPenaltyById(id));
+        return new ApiResponse<>("Fetched successfully",
+                service.getPenaltyById(id));
     }
 
-    // DELETE ✅ FIXED
+    // DELETE
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.deletePenalty(id);
@@ -67,5 +71,13 @@ public class PenaltyController {
         Penalty updated = service.updatePenalty(id, penalty);
 
         return new ApiResponse<>("Updated successfully", updated);
+    }
+
+    // SEARCH
+    @GetMapping("/search")
+    public ApiResponse<List<Penalty>> search(@RequestParam("title") String title) {
+
+        return new ApiResponse<>("Search results",
+                service.searchByTitle(title));
     }
 }
