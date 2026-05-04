@@ -12,6 +12,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=your_super_secret_key_which_should_be_long_enough_for_hs256_algorithm
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=naikaravind27@gmail.com
+      - MAIL_PASSWORD=***REMOVED***
+      - ADMIN_EMAIL=naikaravind27@gmail.com
     depends_on:
       postgres:
         condition: service_healthy

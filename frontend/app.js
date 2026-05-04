@@ -64,22 +64,48 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 0;
     const itemsPerPage = 10;
     
-    // Mock Data
-    let mockPenalties = Array.from({ length: 35 }).map((_, i) => ({
-        id: i + 1,
-        title: `Sample Regulatory Penalty #${i + 1}`,
-        description: `This is a detailed description for regulatory penalty #${i + 1}. It involves violations of specific compliance protocols and requires immediate attention from the regulatory team.`,
-        severity: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'][Math.floor(Math.random() * 4)],
-        status: ['ACTIVE', 'PENDING', 'RESOLVED', 'CLOSED'][Math.floor(Math.random() * 4)]
-    })).reverse(); // Reverse to show newest first
+    // Data State
+    let allPenalties = [];
+    let filteredPenalties = [];
+    let authToken = '';
+    const API_BASE = 'http://localhost:8080/api';
 
-    let filteredPenalties = [...mockPenalties];
+    const loginAndFetchData = async () => {
+        try {
+            // 1. Authenticate as admin
+            const authRes = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: 'admin', password: 'admin' })
+            });
+            if (authRes.ok) {
+                const authData = await authRes.json();
+                authToken = authData.token;
+                
+                // 2. Fetch all penalties (using a large size to get all for local filtering/stats)
+                const dataRes = await fetch(`${API_BASE}/penalties/all?size=1000&sort=createdAt,desc`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (dataRes.ok) {
+                    const data = await dataRes.json();
+                    allPenalties = data.content || [];
+                    applyFilters();
+                    updateStats();
+                }
+            } else {
+                console.error('Authentication failed');
+            }
+        } catch (error) {
+            console.error('Error connecting to backend:', error);
+        }
+    };
 
     const updateStats = () => {
-        statTotal.innerText = mockPenalties.length;
-        statActive.innerText = mockPenalties.filter(p => p.status === 'ACTIVE').length;
-        statResolved.innerText = mockPenalties.filter(p => p.status === 'RESOLVED').length;
-        statPending.innerText = mockPenalties.filter(p => p.status === 'PENDING').length;
+        statTotal.innerText = allPenalties.length;
+        statActive.innerText = allPenalties.filter(p => p.status === 'ACTIVE').length;
+        statResolved.innerText = allPenalties.filter(p => p.status === 'RESOLVED').length;
+        statPending.innerText = allPenalties.filter(p => p.status === 'PENDING').length;
     };
 
     const applyFilters = () => {
@@ -87,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const severity = severityFilter.value;
         const status = statusFilter.value;
 
-        filteredPenalties = mockPenalties.filter(p => {
+        filteredPenalties = allPenalties.filter(p => {
             const matchesSearch = p.title.toLowerCase().includes(searchTerm) || 
                                   p.description.toLowerCase().includes(searchTerm) || 
                                   p.id.toString().includes(searchTerm);
@@ -97,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         currentPage = 0; // reset to first page when filtering
-        fetchPenalties();
+        renderCurrentPage();
     };
 
     searchInput.addEventListener('input', applyFilters);
@@ -127,35 +153,62 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Create Penalty Form Submit
-    createPenaltyForm.addEventListener('submit', (e) => {
+    createPenaltyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const penalty = {
-            id: mockPenalties.length > 0 ? Math.max(...mockPenalties.map(p => p.id)) + 1 : 1,
+        
+        const btn = document.getElementById('savePenaltyBtn');
+        const origText = btn.innerText;
+        btn.innerText = 'Saving...';
+        btn.disabled = true;
+
+        const penaltyData = {
             title: document.getElementById('penaltyTitle').value,
             description: document.getElementById('penaltyDescription').value,
             severity: document.getElementById('penaltySeverity').value,
             status: document.getElementById('penaltyStatus').value
         };
 
-        mockPenalties.unshift(penalty); // Add to beginning
-        applyFilters(); // Re-apply filters and render
-        updateStats();
+        try {
+            const res = await fetch(`${API_BASE}/penalties/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(penaltyData)
+            });
 
-        createModal.style.display = 'none';
-        createPenaltyForm.reset();
-        
-        // Show success visual feedback (optional)
-        const btn = document.getElementById('savePenaltyBtn');
-        const origText = btn.innerText;
-        btn.innerText = 'Saved!';
-        setTimeout(() => btn.innerText = origText, 2000);
+            if (res.ok) {
+                const newPenalty = await res.json();
+                allPenalties.unshift(newPenalty); // Add to beginning
+                applyFilters(); // Re-apply filters and render
+                updateStats();
+
+                createModal.style.display = 'none';
+                createPenaltyForm.reset();
+                
+                btn.innerText = 'Saved!';
+            } else {
+                alert('Failed to save penalty to database');
+                btn.innerText = origText;
+            }
+        } catch (error) {
+            console.error('Error saving penalty:', error);
+            alert('Failed to save penalty. Is backend running?');
+            btn.innerText = origText;
+        } finally {
+            setTimeout(() => {
+                btn.innerText = origText;
+                btn.disabled = false;
+            }, 2000);
+        }
     });
 
     // Pagination controls
     document.getElementById('btnPrev').addEventListener('click', () => {
         if (currentPage > 0) {
             currentPage--;
-            fetchPenalties();
+            renderCurrentPage();
         }
     });
 
@@ -163,16 +216,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalPages = Math.ceil(filteredPenalties.length / itemsPerPage);
         if (currentPage < totalPages - 1) {
             currentPage++;
-            fetchPenalties();
+            renderCurrentPage();
         }
     });
 
-    // Fetch penalties (Mocked)
-    const fetchPenalties = () => {
+    // Render current page data
+    const renderCurrentPage = () => {
         tableBody.style.display = 'none';
         loadingIndicator.style.display = 'flex';
         
-        // Simulate network delay for realistic feel
         setTimeout(() => { 
             const totalPages = Math.ceil(filteredPenalties.length / itemsPerPage) || 1;
             const start = currentPage * itemsPerPage;
@@ -187,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             loadingIndicator.style.display = 'none';
             tableBody.style.display = 'table-row-group';
-        }, 300);
+        }, 100);
     };
 
     const renderTable = (data) => {
@@ -217,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = parseInt(e.target.getAttribute('data-id'));
-                const penalty = mockPenalties.find(p => p.id === id);
+                const penalty = allPenalties.find(p => p.id === id);
                 
                 if (penalty) {
                     // Populate View Modal
@@ -236,6 +288,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    updateStats(); // Initial stats calculation
-    fetchPenalties(); // Start the app by fetching initial data
+    loginAndFetchData(); // Start the app by authenticating and fetching data
 });
