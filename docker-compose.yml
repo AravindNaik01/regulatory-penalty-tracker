@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/penalty_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your_super_secret_key_which_should_be_long_enough_for_hs256_algorithm
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - penalty_net
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=penalty_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d penalty_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - penalty_net
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - penalty_net
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "echo 'Frontend placeholder' && tail -f /dev/null"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "echo 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - penalty_net
+
+  ai-service:
+    image: python:3.11-slim
+    working_dir: /app
+    command: sh -c "echo 'AI Service placeholder' && tail -f /dev/null"
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "echo 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - penalty_net
+
+volumes:
+  pgdata:
+
+networks:
+  penalty_net:
