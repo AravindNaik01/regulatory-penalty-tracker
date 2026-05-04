@@ -31,10 +31,10 @@ spring:
       password: ${REDIS_PASSWORD:}
 
   mail:
-    host: ${MAIL_HOST:smtp.example.com}
+    host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:user}
-    password: ${MAIL_PASSWORD:password}
+    username: ${MAIL_USERNAME:naikaravind27@gmail.com}
+    password: ${MAIL_PASSWORD:wzar btzj txzx vsbj}
     properties:
       mail:
         smtp:
@@ -43,7 +43,7 @@ spring:
             enable: true
 
 app:
-  admin-email: ${ADMIN_EMAIL:admin@example.com}
+  admin-email: ${ADMIN_EMAIL:naikaravind27@gmail.com}
   jwt:
     secret: ${JWT_SECRET:your_super_secret_key_which_should_be_long_enough_for_hs256_algorithm}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 hours
