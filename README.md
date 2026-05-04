@@ -32,7 +32,7 @@ graph TD
 - **Glassmorphism UI**: Beautiful, fully responsive Vanilla CSS frontend.
 - **Dockerized Environment**: One-command setup encompassing APIs, databases, and caches.
 
-## Setup Steps
+##   Setup Steps
 
 ### Option 1: Docker Compose (Recommended)
 You can run the entire application stack effortlessly using Docker.
